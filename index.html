@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Əmək Haqqı Kalkulyatoru 2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .input-group:focus-within label { color: #667eea; transform: translateY(-1.5rem) scale(0.85); }
+        .input-group label { transition: all 0.3s ease; transform-origin: left; }
+        .result-card { transition: all 0.3s ease; }
+        .result-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
+        .deduction-row { animation: slideIn 0.4s ease-out forwards; opacity: 0; transform: translateX(-10px); }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+        .toggle-btn.active { background: #667eea; color: white; }
+        .number-animate { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8 text-white">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2">Əmək Haqqı Kalkulyatoru</h1>
+            <p class="text-lg opacity-90">2026-cı il üçün yenilənmiş vergi və sığorta hesablamaları</p>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6">
+            <!-- Input Section -->
+            <div class="glass-panel rounded-2xl p-6 md:p-8 shadow-2xl">
+                <!-- Mode Toggle -->
+                <div class="flex bg-gray-100 rounded-xl p-1 mb-8">
+                    <button onclick="setMode('gross')" id="btn-gross" class="toggle-btn active flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2">
+                        <i data-lucide="arrow-down-circle" class="w-5 h-5"></i>
+                        Gross → Net
+                    </button>
+                    <button onclick="setMode('net')" id="btn-net" class="toggle-btn flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-300 flex items-center justify-center gap-2 text-gray-600">
+                        <i data-lucide="arrow-up-circle" class="w-5 h-5"></i>
+                        Net → Gross
+                    </button>
+                </div>
+
+                <!-- Input Field -->
+                <div class="input-group relative mb-6">
+                    <label id="input-label" class="absolute left-4 top-4 text-gray-500 font-medium pointer-events-none bg-transparent px-1">
+                        Gross əmək haqqı (₼)
+                    </label>
+                    <input type="number" id="salary-input" class="w-full px-4 pt-6 pb-3 text-2xl font-bold text-gray-800 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none transition-colors" placeholder="0" oninput="calculate()">
+                    <span class="absolute right-4 top-4 text-gray-400 font-medium">₼</span>
+                </div>
+
+                <!-- Sector Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Sektor seçimi</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="sector" value="private" checked onchange="calculate()" class="hidden peer">
+                            <div class="p-4 border-2 border-gray-200 rounded-xl peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all text-center">
+                                <div class="font-semibold text-gray-800">Özəl sektor</div>
+                                <div class="text-xs text-gray-500 mt-1">Neft-qaz xaric</div>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="sector" value="state" onchange="calculate()" class="hidden peer">
+                            <div class="p-4 border-2 border-gray-200 rounded-xl peer-checked:border-indigo-500 peer-checked:bg-indigo-50 transition-all text-center">
+                                <div class="font-semibold text-gray-800">Dövlət sektoru</div>
+                                <div class="text-xs text-gray-500 mt-1">Və ya neft-qaz</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="info" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <p class="font-semibold mb-1">2026-cı il üçün yeni qaydalar:</p>
+                            <ul class="space-y-1 text-xs opacity-90">
+                                <li>• Gəlir vergisi: 0-2500₼ 3%, 2500-8000₼ 10%, 8000₼+ 14%</li>
+                                <li>• DSMF: 200₼ədək 3%, 200-8000₼ 10%, 8000₼+ 10%</li>
+                                <li>• İTS: 2500₼ədək 2%, 2500₼+ 0.5%</li>
+                                <li>• İşsizlik: 0.5%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="space-y-4">
+                <!-- Main Result Cards -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-panel rounded-2xl p-6 result-card border-l-4 border-indigo-500">
+                        <div class="text-sm text-gray-600 mb-1">Gross əmək haqqı</div>
+                        <div class="text-3xl font-bold text-indigo-600" id="result-gross">0 ₼</div>
+                    </div>
+                    <div class="glass-panel rounded-2xl p-6 result-card border-l-4 border-emerald-500">
+                        <div class="text-sm text-gray-600 mb-1">Net əmək haqqı</div>
+                        <div class="text-3xl font-bold text-emerald-600" id="result-net">0 ₼</div>
+                    </div>
+                </div>
+
+                <!-- Supergross Card -->
+                <div class="glass-panel rounded-2xl p-6 result-card border-l-4 border-purple-500">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-sm text-gray-600 mb-1">Supergross (işəgötürən xərci)</div>
+                            <div class="text-2xl font-bold text-purple-600" id="result-supergross">0 ₼</div>
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-full">
+                            <i data-lucide="building-2" class="w-6 h-6 text-purple-600"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Breakdown -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="receipt" class="w-5 h-5 text-indigo-600"></i>
+                        Detallı hesablama
+                    </h3>
+                    
+                    <!-- Employee Deductions -->
+                    <div class="space-y-3 mb-6">
+                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">İşçi tutulmaları</div>
+                        
+                        <div class="deduction-row flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100" style="animation-delay: 0ms">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-red-100 p-2 rounded-lg">
+                                    <i data-lucide="landmark" class="w-4 h-4 text-red-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">Gəlir vergisi</div>
+                                    <div class="text-xs text-gray-500" id="tax-rate-display">3-14%</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-red-600" id="deduction-tax">0 ₼</div>
+                        </div>
+
+                        <div class="deduction-row flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-100" style="animation-delay: 50ms">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-orange-100 p-2 rounded-lg">
+                                    <i data-lucide="shield" class="w-4 h-4 text-orange-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">DSMF (işçi)</div>
+                                    <div class="text-xs text-gray-500">3-10%</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-orange-600" id="deduction-dsmf-employee">0 ₼</div>
+                        </div>
+
+                        <div class="deduction-row flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-100" style="animation-delay: 100ms">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-yellow-100 p-2 rounded-lg">
+                                    <i data-lucide="heart-pulse" class="w-4 h-4 text-yellow-700"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">İcbari tibbi sığorta</div>
+                                    <div class="text-xs text-gray-500">0.5-2%</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-yellow-700" id="deduction-health">0 ₼</div>
+                        </div>
+
+                        <div class="deduction-row flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200" style="animation-delay: 150ms">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-gray-200 p-2 rounded-lg">
+                                    <i data-lucide="briefcase" class="w-4 h-4 text-gray-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">İşsizlik sığortası</div>
+                                    <div class="text-xs text-gray-500">0.5%</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-gray-600" id="deduction-unemployment">0 ₼</div>
+                        </div>
+                    </div>
+
+                    <!-- Employer Costs -->
+                    <div class="space-y-3 pt-4 border-t border-gray-200">
+                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">İşəgötürən ödənişləri</div>
+                        
+                        <div class="deduction-row flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100" style="animation-delay: 200ms">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-100 p-2 rounded-lg">
+                                    <i data-lucide="shield-check" class="w-4 h-4 text-blue-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">DSMF (işəgötürən)</div>
+                                    <div class="text-xs text-gray-500">11-22%</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-blue-600" id="deduction-dsmf-employer">0 ₼</div>
+                        </div>
+
+                        <div class="deduction-row flex justify-between items-center p-3 bg-indigo-50 rounded-lg border border-indigo-100" style="animation-delay: 250ms">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-indigo-100 p-2 rounded-lg">
+                                    <i data-lucide="heart-handshake" class="w-4 h-4 text-indigo-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">İTS (işəgötürən)</div>
+                                    <div class="text-xs text-gray-500">0.5-2%</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-indigo-600" id="deduction-health-employer">0 ₼</div>
+                        </div>
+
+                        <div class="deduction-row flex justify-between items-center p-3 bg-slate-50 rounded-lg border border-slate-200" style="animation-delay: 300ms">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-slate-200 p-2 rounded-lg">
+                                    <i data-lucide="briefcase" class="w-4 h-4 text-slate-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-800">İşsizlik (işəgötürən)</div>
+                                    <div class="text-xs text-gray-500">0.5%</div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-slate-600" id="deduction-unemployment-employer">0 ₼</div>
+                        </div>
+                    </div>
+
+                    <!-- Total -->
+                    <div class="mt-6 pt-4 border-t-2 border-gray-200">
+                        <div class="flex justify-between items-center text-lg font-bold">
+                            <span class="text-gray-800">Cəmi tutulmalar (işçi)</span>
+                            <span class="text-red-600" id="total-deductions">0 ₼</span>
+                        </div>
+                        <div class="flex justify-between items-center text-lg font-bold mt-2">
+                            <span class="text-gray-800">İşəgötürən ümumi xərci</span>
+                            <span class="text-purple-600" id="total-employer-cost">0 ₼</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let currentMode = 'gross';
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-gross').classList.toggle('active', mode === 'gross');
+            document.getElementById('btn-net').classList.toggle('active', mode === 'net');
+            document.getElementById('btn-gross').classList.toggle('text-gray-600', mode !== 'gross');
+            document.getElementById('btn-net').classList.toggle('text-gray-600', mode !== 'net');
+            
+            const label = document.getElementById('input-label');
+            const input = document.getElementById('salary-input');
+            
+            if (mode === 'gross') {
+                label.textContent = 'Gross əmək haqqı (₼)';
+                input.placeholder = 'Gross məbləğ daxil edin';
+            } else {
+                label.textContent = 'Net əmək haqqı (₼)';
+                input.placeholder = 'Net məbləğ daxil edin';
+            }
+            
+            calculate();
+        }
+
+        function formatMoney(amount) {
+            return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + ' ₼';
+        }
+
+        function calculateTax(gross, sector) {
+            if (sector === 'state') {
+                // State sector: 14% up to 2500, 25% above
+                if (gross <= 2500) {
+                    return (gross - 200) * 0.14;
+                } else {
+                    return 350 + (gross - 2500) * 0.25;
+                }
+            } else {
+                // Private sector 2026: progressive
+                if (gross <= 2500) {
+                    return (gross - 200) * 0.03;
+                } else if (gross <= 8000) {
+                    return 75 + (gross - 2500) * 0.10;
+                } else {
+                    return 625 + (gross - 8000) * 0.14;
+                }
+            }
+        }
+
+        function calculateDSMFEmployee(gross) {
+            if (gross <= 200) {
+                return gross * 0.03;
+            } else if (gross <= 8000) {
+                return 6 + (gross - 200) * 0.10;
+            } else {
+                return 786 + (gross - 8000) * 0.10;
+            }
+        }
+
+        function calculateDSMFEmployer(gross) {
+            if (gross <= 200) {
+                return gross * 0.22;
+            } else if (gross <= 8000) {
+                return 44 + (gross - 200) * 0.15;
+            } else {
+                return 1214 + (gross - 8000) * 0.11;
+            }
+        }
+
+        function calculateHealth(gross, sector) {
+            // Both sectors same in 2026 for private non-oil
+            // 2% up to 2500, 0.5% above
+            if (gross <= 2500) {
+                return gross * 0.02;
+            } else {
+                return 50 + (gross - 2500) * 0.005;
+            }
+        }
+
+        function calculateUnemployment(gross) {
+            return gross * 0.005;
+        }
+
+        function calculateFromGross(gross) {
+            const sector = document.querySelector('input[name="sector"]:checked').value;
+            
+            const tax = Math.max(0, calculateTax(gross, sector));
+            const dsmfEmp = calculateDSMFEmployee(gross);
+            const health = calculateHealth(gross, sector);
+            const unemployment = calculateUnemployment(gross);
+            
+            const totalDeductions = tax + dsmfEmp + health + unemployment;
+            const net = gross - totalDeductions;
+            
+            const dsmfEmpr = calculateDSMFEmployer(gross);
+            const healthEmpr = calculateHealth(gross, sector); // Same as employee in private sector
+            const unemploymentEmpr = calculateUnemployment(gross);
+            
+            const supergross = gross + dsmfEmpr + healthEmpr + unemploymentEmpr;
+            
+            return {
+                gross,
+                net,
+                supergross,
+                tax,
+                dsmfEmp,
+                dsmfEmpr,
+                health,
+                healthEmpr,
+                unemployment,
+                unemploymentEmpr,
+                totalDeductions,
+                sector
+            };
+        }
+
+        function calculateFromNet(targetNet) {
+            // Binary search to find gross from net
+            let low = targetNet;
+            let high = targetNet * 2.5; // Upper bound
+            let result = null;
+            
+            for (let i = 0; i < 50; i++) {
+                const mid = (low + high) / 2;
+                const calc = calculateFromGross(mid);
+                
+                if (Math.abs(calc.net - targetNet) < 0.01) {
+                    result = calc;
+                    break;
+                }
+                
+                if (calc.net < targetNet) {
+                    low = mid;
+                } else {
+                    high = mid;
+                }
+            }
+            
+            if (!result) {
+                result = calculateFromGross((low + high) / 2);
+            }
+            
+            return result;
+        }
+
+        function calculate() {
+            const input = parseFloat(document.getElementById('salary-input').value) || 0;
+            
+            let result;
+            if (currentMode === 'gross') {
+                result = calculateFromGross(input);
+            } else {
+                result = calculateFromNet(input);
+            }
+            
+            // Update displays
+            document.getElementById('result-gross').textContent = formatMoney(result.gross);
+            document.getElementById('result-net').textContent = formatMoney(result.net);
+            document.getElementById('result-supergross').textContent = formatMoney(result.supergross);
+            
+            document.getElementById('deduction-tax').textContent = formatMoney(result.tax);
+            document.getElementById('deduction-dsmf-employee').textContent = formatMoney(result.dsmfEmp);
+            document.getElementById('deduction-health').textContent = formatMoney(result.health);
+            document.getElementById('deduction-unemployment').textContent = formatMoney(result.unemployment);
+            
+            document.getElementById('deduction-dsmf-employer').textContent = formatMoney(result.dsmfEmpr);
+            document.getElementById('deduction-health-employer').textContent = formatMoney(result.healthEmpr);
+            document.getElementById('deduction-unemployment-employer').textContent = formatMoney(result.unemploymentEmpr);
+            
+            document.getElementById('total-deductions').textContent = formatMoney(result.totalDeductions);
+            document.getElementById('total-employer-cost').textContent = formatMoney(result.supergross);
+            
+            // Update tax rate display
+            const sector = result.sector;
+            const gross = result.gross;
+            let taxRateText = '';
+            if (sector === 'state') {
+                taxRateText = gross <= 2500 ? '14%' : '25%';
+            } else {
+                if (gross <= 2500) taxRateText = '3%';
+                else if (gross <= 8000) taxRateText = '10%';
+                else taxRateText = '14%';
+            }
+            document.getElementById('tax-rate-display').textContent = taxRateText;
+        }
+
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
